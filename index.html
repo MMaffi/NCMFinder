@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Encontre códigos NCM (Nomenclatura Comum do Mercosul) para classificação de mercadorias com informações completas de impostos">
+    <meta name="keywords" content="NCM, código NCM, classificação fiscal, mercosul, impostos, aliquota">
+
+    <title>NCM Finder</title>
+
+    <!-- External Links -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+
+    <!-- Links CSS -->
+    <link rel="stylesheet" href="./src/assets/css/variables.css">
+    <link rel="stylesheet" href="./src/assets/css/style.css">
+    <link rel="stylesheet" href="./src/assets/css/search.css">
+    <link rel="stylesheet" href="./src/assets/css/modalstyle.css">
+    <link rel="stylesheet" href="./src/assets/css/theme.css">
+    <link rel="stylesheet" href="./src/assets/css/scrollbar.css">
+
+    <link rel="shortcut icon" href="./src/assets/image/NCMFinder_logo.png" type="image/x-icon">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="logo-container">
+                    <h1><i class="fas fa-search-dollar"></i> NCM Finder</h1>
+                    <p class="description">Sistema avançado de busca de códigos NCM com informações fiscais completas</p>
+                </div>
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <span class="stat-number" id="totalNcms">0</span>
+                        <span class="stat-label">Códigos NCM</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="lastUpdate">-</span>
+                        <span class="stat-label">Atualizado em</span>
+                    </div>
+                </div>
+                <div class="theme-toggle-container">
+                    <button id="themeToggle" class="theme-toggle" title="Alternar modo escuro/claro">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="search-container">
+            <div class="search-box">
+                <div class="search-input-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="Digite o nome do produto ou código NCM..." autocomplete="off">
+                    <button id="clearSearch" class="clear-btn" title="Limpar busca">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <button id="searchButton" class="primary-btn">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+                <button id="advancedSearchToggle" class="secondary-btn" title="Busca avançada">
+                    <i class="fas fa-sliders-h"></i>
+                </button>
+            </div>
+            
+            <div class="advanced-search-container" id="advancedSearchContainer">
+                <div class="filter-section">
+                    <h3>Opções de Busca</h3>
+                    <div class="filter-options">
+                        <label class="radio-label">
+                            <input type="radio" name="searchType" value="all" checked>
+                            <span class="radio-custom"></span>
+                            Buscar em toda a descrição
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="searchType" value="start">
+                            <span class="radio-custom"></span>
+                            Buscar no início da descrição
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="searchType" value="code">
+                            <span class="radio-custom"></span>
+                            Buscar apenas por código
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="filter-section">
+                    <h3>Filtrar por Impostos</h3>
+                    <div class="tax-filters">
+                        <div class="tax-filter">
+                            <label>Alíquota Nacional</label>
+                            <select id="filterNational">
+                                <option value="">Qualquer valor</option>
+                                <option value="12.20">12,20%</option>
+                                <option value="13.45">13,45%</option>
+                                <option value="14.40">14,40%</option>
+                                <option value="15.85">15,85%</option>
+                                <option value="16.12">16,12%</option>
+                                <option value="16.91">16,91%</option>
+                            </select>
+                        </div>
+                        <div class="tax-filter">
+                            <label>Alíquota Importação</label>
+                            <select id="filterImport">
+                                <option value="">Qualquer valor</option>
+                                <option value="12.20">12,20%</option>
+                                <option value="13.32">13,32%</option>
+                                <option value="15.45">15,45%</option>
+                                <option value="16.12">16,12%</option>
+                                <option value="16.40">16,40%</option>
+                                <option value="20.52">20,52%</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="search-info" id="searchInfo">
+                <div><span id="resultCount">11.038</span> resultados encontrados</div>
+                <button id="exportResults" class="text-btn">
+                    <i class="fas fa-download"></i> Exportar resultados
+                </button>
+            </div>
+        </div>
+        
+        <div class="results-container">
+            <div class="results-header">
+                <div class="col-code">Código NCM</div>
+                <div class="col-desc">Descrição</div>
+                <div class="col-tax">Impostos</div>
+                <div class="col-actions">Ações</div>
+            </div>
+            <div id="results"></div>
+            <div class="loading-results" id="loadingResults">
+                <div class="spinner"></div>
+                <span>Carregando mais resultados...</span>
+            </div>
+        </div>
+        
+        <footer>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>NCM Finder</h4>
+                    <p>Sistema de consulta de códigos NCM para classificação fiscal de mercadorias</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Recursos</h4>
+                    <ul>
+                        <li>Busca avançada</li>
+                        <li>Informações fiscais</li>
+                        <li>Exportação de dados</li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Ajuda</h4>
+                    <ul>
+                        <li><a href="#" id="openHelp">Como usar</a></li>
+                        <li><a href="#" id="openAbout">Sobre</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2025 NCMFinder. Todos os direitos reservados</p>
+                <p>v1.0.0.1009.25</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal para detalhes do NCM -->
+    <div id="ncmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Detalhes do NCM</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Conteúdo será preenchido via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Ajuda -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Como usar o NCM Finder</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h3><i class="fas fa-search"></i> Busca Básica</h3>
+                    <p>Digite qualquer termo relacionado ao produto ou código NCM no campo de busca.</p>
+                </div>
+                <div class="help-section">
+                    <h3><i class="fas fa-sliders-h"></i> Busca Avançada</h3>
+                    <p>Use as opções de filtro para refinar sua busca por tipo de pesquisa ou faixa de impostos.</p>
+                </div>
+                <div class="help-section">
+                    <h3><i class="fas fa-download"></i> Exportação</h3>
+                    <p>Exporte os resultados da busca para CSV para usar em seus sistemas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast de notificação -->
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <i class="fas fa-check-circle toast-icon"></i>
+            <span class="toast-message">Operação realizada com sucesso!</span>
+        </div>
+    </div>
+
+    <button id="backToTop" title="Voltar ao topo">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script src="./src/assets/javascript/script.js"></script>
+    <script src="./src/assets/javascript/formatfunctions.js"></script>
+    <script src="./src/assets/javascript/darkmode.js"></script>
+    <script src="./src/assets/javascript/copycode.js"></script>
+    <script src="./src/assets/javascript/toast.js"></script>
+</body> 
+</html>
