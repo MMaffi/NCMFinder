@@ -4,6 +4,7 @@ const PAGE_SIZE = 30;
 let filteredResults = [];
 let showingSearch = false;
 let isLoading = false;
+let fuse;
 
 // Elementos da DOM
 const searchInput = document.getElementById('searchInput');
@@ -30,6 +31,36 @@ const toast = document.getElementById('toast');
 const filterNational = document.getElementById('filterNational');
 const filterImport = document.getElementById('filterImport');
 
+// Função para inicializar o Fuse.js
+function initializeFuse() {
+    const options = {
+        keys: [
+            {
+                name: 'descricao',
+                weight: 0.6
+            },
+            {
+                name: 'codigo',
+                weight: 0.3
+            },
+            {
+                name: 'excecao',
+                weight: 0.1
+            }
+        ],
+        includeScore: true,
+        threshold: 0.3,
+        distance: 50,
+        ignoreLocation: false,
+        minMatchCharLength: 2,
+        findAllMatches: true,
+        useExtendedSearch: true,
+        includeMatches: true
+    };
+    
+    fuse = new Fuse(ncmDatabase, options);
+}
+
 // Carregar JSON
 fetch('./src/assets/json/tabelaNCM.json')
   .then(res => res.json())
@@ -37,6 +68,10 @@ fetch('./src/assets/json/tabelaNCM.json')
     ncmDatabase = data.ncmImpostoAproximado;
     totalNcmsElement.textContent = ncmDatabase.length.toLocaleString('pt-BR');
     lastUpdateElement.textContent = new Date().toLocaleDateString('pt-BR');
+    
+    // Inicializar Fuse.js com os dados
+    initializeFuse();
+    
     loadMoreResults();
   })
   .catch(err => {
@@ -73,60 +108,80 @@ function loadMoreResults() {
 
 // Função para realizar a busca
 function performSearch() {
-  const searchTerm = searchInput.value.trim().toLowerCase();
-  const searchType = document.querySelector('input[name="searchType"]:checked').value;
-  const nationalFilter = filterNational.value;
-  const importFilter = filterImport.value;
-  
-  resultsContainer.innerHTML = '';
-  currentIndex = 0;
-  showingSearch = true;
-  
-  if (searchTerm === '' && nationalFilter === '' && importFilter === '') {
-    showingSearch = false;
-    resultCountElement.textContent = ncmDatabase.length.toLocaleString('pt-BR');
-    loadMoreResults();
-    return;
-  }
-  
-  filteredResults = ncmDatabase.filter(item => {
-    // Filtro por texto
-    let textMatch = false;
-    if (searchTerm === '') {
-      textMatch = true;
-    } else if (searchType === 'code') {
-      textMatch = item.codigo.toLowerCase().includes(searchTerm);
-    } else if (searchType === 'start') {
-      textMatch = item.descricao.toLowerCase().startsWith(searchTerm);
-    } else {
-      textMatch = (
-        item.descricao.toLowerCase().includes(searchTerm) ||
-        item.codigo.toLowerCase().includes(searchTerm)
-      );
+    const searchTerm = searchInput.value.trim();
+    const searchType = document.querySelector('input[name="searchType"]:checked').value;
+    const nationalFilter = filterNational.value;
+    const importFilter = filterImport.value;
+    
+    resultsContainer.innerHTML = '';
+    currentIndex = 0;
+    showingSearch = true;
+    
+    if (searchTerm === '' && nationalFilter === '' && importFilter === '') {
+        showingSearch = false;
+        resultCountElement.textContent = ncmDatabase.length.toLocaleString('pt-BR');
+        loadMoreResults();
+        return;
     }
     
-    // Filtro por impostos
-    const nationalMatch = nationalFilter === '' || item.aliquotaNacional == nationalFilter;
-    const importMatch = importFilter === '' || item.aliquotaImportada == importFilter;
+    // Primeiro, aplicar filtros de impostos
+    let preFilteredResults = ncmDatabase;
     
-    return textMatch && nationalMatch && importMatch;
-  });
-  
-  resultCountElement.textContent = filteredResults.length.toLocaleString('pt-BR');
-  
-  if (filteredResults.length === 0) {
-    resultsContainer.innerHTML = `
-      <div class="no-results">
-        <i class="fas fa-search"></i>
-        <h3>Nenhum resultado encontrado</h3>
-        <p>Tente alterar os termos de busca ou os filtros aplicados.</p>
-      </div>
-    `;
-    loadingResults.classList.remove('show');
-    return;
-  }
-  
-  loadMoreResults();
+    if (nationalFilter !== '' || importFilter !== '') {
+        preFilteredResults = ncmDatabase.filter(item => {
+            const nationalMatch = nationalFilter === '' || item.aliquotaNacional == nationalFilter;
+            const importMatch = importFilter === '' || item.aliquotaImportada == importFilter;
+            return nationalMatch && importMatch;
+        });
+    }
+    
+    if (searchTerm === '') {
+        filteredResults = preFilteredResults;
+    } else {
+        let searchOptions = {};
+        
+        if (searchType === 'code') {
+            searchOptions = {
+                keys: ['codigo'],
+                threshold: 0.2,
+                shouldSort: true
+            };
+        } else if (searchType === 'start') {
+            filteredResults = preFilteredResults.filter(item => 
+                item.descricao.toLowerCase().startsWith(searchTerm.toLowerCase())
+            );
+            resultCountElement.textContent = filteredResults.length.toLocaleString('pt-BR');
+            loadMoreResults();
+            return;
+        } else {
+            searchOptions = {
+                keys: ['descricao', 'codigo', 'excecao'],
+                threshold: 0.3,
+                shouldSort: true
+            };
+        }
+        
+        const fuseInstance = new Fuse(preFilteredResults, searchOptions);
+        const searchResults = fuseInstance.search(searchTerm);
+        
+        filteredResults = searchResults.map(result => result.item);
+    }
+    
+    resultCountElement.textContent = filteredResults.length.toLocaleString('pt-BR');
+    
+    if (filteredResults.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="no-results">
+                <i class="fas fa-search"></i>
+                <h3>Nenhum resultado encontrado</h3>
+                <p>Tente alterar os termos de busca ou os filtros aplicados.</p>
+            </div>
+        `;
+        loadingResults.classList.remove('show');
+        return;
+    }
+    
+    loadMoreResults();
 }
 
 // Função para exibir resultados
