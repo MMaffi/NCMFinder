@@ -315,7 +315,7 @@ openHelpButton.addEventListener('click', (e) => {
 
 openAboutButton.addEventListener('click', (e) => {
   e.preventDefault();
-  showToast('NCM Finder v1.0.0 - Sistema de consulta de códigos NCM');
+  showToast('NCM Finder - Sistema de consulta de códigos NCM');
 });
 
 // Fechar o modal quando clicar no X
